@@ -1,0 +1,96 @@
+{
+  "expo": {
+    "name": "Smart River Watch",
+    "slug": "river-watch",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "smartriverwatch",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E90FF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.smartriverwatch.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.smartriverwatch.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#1E90FF",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#1E90FF",
+          "dark": {
+            "backgroundColor": "#0057A7"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0091F5"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to detect waste in images.",
+          "cameraPermission": "The app accesses your camera to take photos for waste detection."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Smart River Watch to use your location to automatically include it in your reports.",
+          "locationAlwaysPermission": "Allow Smart River Watch to use your location.",
+          "locationWhenInUsePermission": "Allow Smart River Watch to use your location to automatically include it in your reports."
+        }
+      ],
+      "expo-build-properties",
+      "expo-router"
+    ],
+    "experiments": {
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d28def76-72b7-4e17-b6ed-63126af72eee"
+      }
+    },
+    "owner": "aman_ali01"
+  }
+}
