@@ -81,6 +81,7 @@ export default function UnsafeZoneMapScreen() {
   const zones = useMemo(() => generateUnsafeZones(), []);
   const [selectedZone, setSelectedZone] = useState<UnsafeZone | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [isInteractingWithSheet, setIsInteractingWithSheet] = useState(false);
 
   const handleZonePress = useCallback((zone: UnsafeZone) => {
     setSelectedZone(zone);
@@ -90,6 +91,7 @@ export default function UnsafeZoneMapScreen() {
   const handleCloseSheet = useCallback(() => {
     setSheetVisible(false);
     setSelectedZone(null);
+    setIsInteractingWithSheet(false);
   }, []);
 
   const handleMapPress = useCallback(() => {
@@ -103,6 +105,40 @@ export default function UnsafeZoneMapScreen() {
     high: zones.filter((z) => z.severity === 'high').length,
     moderate: zones.filter((z) => z.severity === 'moderate').length,
   }), [zones]);
+
+  const handleSheetInteractionChange = useCallback((isInteracting: boolean) => {
+    setIsInteractingWithSheet(isInteracting);
+  }, []);
+
+  const isMapInteractive = !isInteractingWithSheet;
+
+  const renderQuickNavigation = () => (
+    <View style={styles.navRow}>
+      <TouchableOpacity
+        style={styles.navButton}
+        activeOpacity={0.8}
+        onPress={() => router.push('/(tabs)/map')}
+      >
+        <Ionicons name="water" size={16} color={COLORS.textSecondary} />
+        <Text style={styles.navButtonText}>Sensors</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.navButton, styles.navButtonActive]}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="warning" size={16} color={COLORS.white} />
+        <Text style={[styles.navButtonText, styles.navButtonTextActive]}>Unsafe</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navButton}
+        activeOpacity={0.8}
+        onPress={() => router.push('/(tabs)/map/waste-hotspots')}
+      >
+        <Ionicons name="flame" size={16} color={COLORS.textSecondary} />
+        <Text style={styles.navButtonText}>Hotspots</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderHeader = () => (
     <Animated.View entering={FadeInUp.duration(500)} style={styles.headerContainer}>
@@ -142,31 +178,7 @@ export default function UnsafeZoneMapScreen() {
       </LinearGradient>
 
       {/* Quick Navigation */}
-      <View style={styles.navRow}>
-        <TouchableOpacity
-          style={styles.navButton}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(tabs)/map')}
-        >
-          <Ionicons name="water" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.navButtonText}>Sensors</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.navButton, styles.navButtonActive]}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="warning" size={16} color={COLORS.white} />
-          <Text style={[styles.navButtonText, styles.navButtonTextActive]}>Unsafe</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navButton}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(tabs)/map/waste-hotspots')}
-        >
-          <Ionicons name="flame" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.navButtonText}>Hotspots</Text>
-        </TouchableOpacity>
-      </View>
+      {renderQuickNavigation()}
     </Animated.View>
   );
 
@@ -252,6 +264,10 @@ export default function UnsafeZoneMapScreen() {
         <MapView
           provider={PROVIDER_GOOGLE}
           style={styles.map}
+          scrollEnabled={isMapInteractive}
+          zoomEnabled={isMapInteractive}
+          rotateEnabled={isMapInteractive}
+          pitchEnabled={isMapInteractive}
           initialRegion={{
             latitude: MAP_CONFIG.DEFAULT_LATITUDE,
             longitude: MAP_CONFIG.DEFAULT_LONGITUDE,
@@ -299,6 +315,7 @@ export default function UnsafeZoneMapScreen() {
         headerColor={selectedZone ? getSeverityColor(selectedZone.severity) : COLORS.critical}
         headerIcon="warning"
         onClose={handleCloseSheet}
+        onInteractionChange={handleSheetInteractionChange}
         initialState="half"
       >
         {renderBottomSheetContent()}
@@ -318,14 +335,13 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 180,
+    height: 220,
   },
 
   // Header
   headerContainer: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 12,
     zIndex: 10,
   },
   headerCard: {

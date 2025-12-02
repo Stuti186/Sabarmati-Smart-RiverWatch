@@ -86,6 +86,7 @@ export default function WasteHotspotMapScreen() {
   const hotspots = useMemo(() => generateWasteHotspots(), []);
   const [selectedHotspot, setSelectedHotspot] = useState<WasteHotspot | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [isInteractingWithSheet, setIsInteractingWithSheet] = useState(false);
 
   const handleHotspotPress = useCallback((hotspot: WasteHotspot) => {
     setSelectedHotspot(hotspot);
@@ -95,6 +96,7 @@ export default function WasteHotspotMapScreen() {
   const handleCloseSheet = useCallback(() => {
     setSheetVisible(false);
     setSelectedHotspot(null);
+    setIsInteractingWithSheet(false);
   }, []);
 
   const handleMapPress = useCallback(() => {
@@ -119,6 +121,40 @@ export default function WasteHotspotMapScreen() {
     medium: hotspots.filter((h) => getDensityLevel(h.density) === 'medium').length,
     low: hotspots.filter((h) => getDensityLevel(h.density) === 'low').length,
   }), [hotspots]);
+
+  const handleSheetInteractionChange = useCallback((isInteracting: boolean) => {
+    setIsInteractingWithSheet(isInteracting);
+  }, []);
+
+  const isMapInteractive = !isInteractingWithSheet;
+
+  const renderQuickNavigation = () => (
+    <View style={styles.navRow}>
+      <TouchableOpacity
+        style={styles.navButton}
+        activeOpacity={0.8}
+        onPress={() => router.push('/(tabs)/map')}
+      >
+        <Ionicons name="water" size={16} color={COLORS.textSecondary} />
+        <Text style={styles.navButtonText}>Sensors</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navButton}
+        activeOpacity={0.8}
+        onPress={() => router.push('/(tabs)/map/unsafe-zones')}
+      >
+        <Ionicons name="warning" size={16} color={COLORS.textSecondary} />
+        <Text style={styles.navButtonText}>Unsafe</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.navButton, styles.navButtonActive]}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="flame" size={16} color={COLORS.white} />
+        <Text style={[styles.navButtonText, styles.navButtonTextActive]}>Hotspots</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderHeader = () => (
     <Animated.View entering={FadeInUp.duration(500)} style={styles.headerContainer}>
@@ -162,31 +198,7 @@ export default function WasteHotspotMapScreen() {
       </LinearGradient>
 
       {/* Quick Navigation */}
-      <View style={styles.navRow}>
-        <TouchableOpacity
-          style={styles.navButton}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(tabs)/map')}
-        >
-          <Ionicons name="water" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.navButtonText}>Sensors</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navButton}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(tabs)/map/unsafe-zones')}
-        >
-          <Ionicons name="warning" size={16} color={COLORS.textSecondary} />
-          <Text style={styles.navButtonText}>Unsafe</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.navButton, styles.navButtonActive]}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="flame" size={16} color={COLORS.white} />
-          <Text style={[styles.navButtonText, styles.navButtonTextActive]}>Hotspots</Text>
-        </TouchableOpacity>
-      </View>
+      {renderQuickNavigation()}
     </Animated.View>
   );
 
@@ -314,6 +326,10 @@ export default function WasteHotspotMapScreen() {
         <MapView
           provider={PROVIDER_GOOGLE}
           style={styles.map}
+          scrollEnabled={isMapInteractive}
+          zoomEnabled={isMapInteractive}
+          rotateEnabled={isMapInteractive}
+          pitchEnabled={isMapInteractive}
           initialRegion={{
             latitude: MAP_CONFIG.DEFAULT_LATITUDE,
             longitude: MAP_CONFIG.DEFAULT_LONGITUDE,
@@ -367,6 +383,7 @@ export default function WasteHotspotMapScreen() {
         headerColor={selectedHotspot ? getDensityColor(getDensityLevel(selectedHotspot.density)) : COLORS.headerGradientStart}
         headerIcon="flame"
         onClose={handleCloseSheet}
+        onInteractionChange={handleSheetInteractionChange}
         initialState="half"
       >
         {renderBottomSheetContent()}
@@ -386,14 +403,13 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 180,
+    height: 220,
   },
 
   // Header
   headerContainer: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 12,
     zIndex: 10,
   },
   headerCard: {

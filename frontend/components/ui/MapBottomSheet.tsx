@@ -15,7 +15,6 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -48,6 +47,7 @@ interface MapBottomSheetProps {
   onClose: () => void;
   onStateChange?: (state: SheetState) => void;
   initialState?: SheetState;
+  onInteractionChange?: (isInteracting: boolean) => void;
 }
 
 const getPositionForState = (state: SheetState): number => {
@@ -73,6 +73,7 @@ export default function MapBottomSheet({
   onClose,
   onStateChange,
   initialState = 'half',
+  onInteractionChange,
 }: MapBottomSheetProps) {
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const currentState = useSharedValue<SheetState>(initialState);
@@ -91,6 +92,18 @@ export default function MapBottomSheet({
   const updateState = useCallback((newState: SheetState) => {
     onStateChange?.(newState);
   }, [onStateChange]);
+
+  const handleInteractionChange = useCallback((isInteracting: boolean) => {
+    onInteractionChange?.(isInteracting);
+  }, [onInteractionChange]);
+
+  const handleScrollBegin = useCallback(() => {
+    handleInteractionChange(true);
+  }, [handleInteractionChange]);
+
+  const handleScrollEnd = useCallback(() => {
+    handleInteractionChange(false);
+  }, [handleInteractionChange]);
 
   const gesture = Gesture.Pan()
     .onStart(() => {
@@ -153,41 +166,44 @@ export default function MapBottomSheet({
   }));
 
   const handleClose = useCallback(() => {
+    handleInteractionChange(false);
     translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
     setTimeout(onClose, 250);
-  }, [onClose, translateY]);
+  }, [onClose, translateY, handleInteractionChange]);
 
   if (!visible) return null;
 
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <Animated.View style={[styles.container, animatedStyle]}>
-        {/* Handle - Draggable */}
         <GestureDetector gesture={gesture}>
-          <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+          <View>
+            {/* Handle (drag area) */}
+            <View style={styles.handleContainer}>
+              <View style={styles.handle} />
+            </View>
+
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={[styles.headerIcon, { backgroundColor: `${headerColor}20` }]}>
+                <Ionicons name={headerIcon} size={22} color={headerColor} />
+              </View>
+              <View style={styles.headerText}>
+                <Text style={styles.title} numberOfLines={1}>{title}</Text>
+                {subtitle && (
+                  <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
           </View>
         </GestureDetector>
-
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={[styles.headerIcon, { backgroundColor: `${headerColor}20` }]}>
-            <Ionicons name={headerIcon} size={22} color={headerColor} />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            {subtitle && (
-              <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
-            )}
-          </View>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={handleClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={22} color="#64748B" />
-          </TouchableOpacity>
-        </View>
 
         {/* Content - Scrollable */}
         <ScrollView
@@ -195,6 +211,14 @@ export default function MapBottomSheet({
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={true}
           scrollEnabled={true}
+          nestedScrollEnabled
+          onTouchStart={() => handleInteractionChange(true)}
+          onTouchMove={() => handleInteractionChange(true)}
+          onTouchEnd={() => handleInteractionChange(false)}
+          onScrollBeginDrag={handleScrollBegin}
+          onScrollEndDrag={handleScrollEnd}
+          onMomentumScrollBegin={handleScrollBegin}
+          onMomentumScrollEnd={handleScrollEnd}
         >
           {children}
         </ScrollView>
