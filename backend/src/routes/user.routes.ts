@@ -1,11 +1,20 @@
 import { Router } from 'express';
-import { protect } from '../middleware/auth';
+import { protect, authorize } from '../middleware/auth';
+import {
+  getUsers,
+  getUserById,
+  updateUserRole,
+  deleteUser,
+  getUserStats,
+} from '../controllers/user.controller';
 
 const router = Router();
 
-// Placeholder routes
-router.get('/', async (req, res) => {
-  res.json({ success: true, message: 'User routes to be implemented' });
-});
+// Admin routes
+router.get('/', protect, authorize('admin'), getUsers);
+router.get('/stats', protect, authorize('admin'), getUserStats);
+router.get('/:id', protect, authorize('admin'), getUserById);
+router.put('/:id/role', protect, authorize('admin'), updateUserRole);
+router.delete('/:id', protect, authorize('admin'), deleteUser);
 
 export default router;

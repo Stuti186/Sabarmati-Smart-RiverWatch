@@ -10,13 +10,12 @@ import {
   logout,
 } from '../controllers/auth.controller';
 import { protect } from '../middleware/auth';
-import { authLimiter } from '../middleware/rateLimiter';
 import { upload } from '../utils/multer';
 
 const router = Router();
 
-router.post('/register', authLimiter, register);
-router.post('/login', authLimiter, login);
+router.post('/register', register);
+router.post('/login', login);
 router.post('/refresh-token', refreshToken);
 router.post('/logout', protect, logout);
 

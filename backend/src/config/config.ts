@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 interface Config {
   nodeEnv: string;
   port: number;
-  mongoUri: string;
+  firebaseServiceAccount: string;
   jwtSecret: string;
   jwtExpiresIn: string;
   jwtRefreshSecret: string;
@@ -51,7 +51,7 @@ interface Config {
 export const config: Config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
-  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/smart_river_watch',
+  firebaseServiceAccount: process.env.FIREBASE_SERVICE_ACCOUNT || '',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',

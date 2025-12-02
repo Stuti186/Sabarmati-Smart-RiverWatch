@@ -1,11 +1,20 @@
 import { Router } from 'express';
-import { protect } from '../middleware/auth';
+import { protect, authorize } from '../middleware/auth';
+import {
+  getMyRewards,
+  getLeaderboard,
+  awardPoints,
+  getRewardHistory,
+} from '../controllers/reward.controller';
 
 const router = Router();
 
-// Placeholder routes
-router.get('/', async (req, res) => {
-  res.json({ success: true, message: 'Reward routes to be implemented' });
-});
+// Public/protected routes
+router.get('/leaderboard', getLeaderboard);
+router.get('/my', protect, getMyRewards);
+router.get('/history', protect, getRewardHistory);
+
+// Admin routes
+router.post('/award', protect, authorize('admin'), awardPoints);
 
 export default router;

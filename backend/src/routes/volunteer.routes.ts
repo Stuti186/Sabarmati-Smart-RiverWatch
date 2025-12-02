@@ -1,11 +1,28 @@
 import { Router } from 'express';
-import { protect } from '../middleware/auth';
+import { protect, authorize } from '../middleware/auth';
+import {
+  getVolunteerEvents,
+  getVolunteerEventById,
+  createVolunteerEvent,
+  registerForEvent,
+  markAttendance,
+  updateVolunteerEvent,
+  deleteVolunteerEvent,
+} from '../controllers/volunteer.controller';
 
 const router = Router();
 
-// Placeholder routes
-router.get('/', async (req, res) => {
-  res.json({ success: true, message: 'Volunteer routes to be implemented' });
-});
+// Public routes
+router.get('/', getVolunteerEvents);
+router.get('/:id', getVolunteerEventById);
+
+// Protected routes
+router.post('/:id/register', protect, registerForEvent);
+
+// Admin routes
+router.post('/', protect, authorize('admin'), createVolunteerEvent);
+router.post('/:id/attendance', protect, authorize('admin'), markAttendance);
+router.put('/:id', protect, authorize('admin'), updateVolunteerEvent);
+router.delete('/:id', protect, authorize('admin'), deleteVolunteerEvent);
 
 export default router;

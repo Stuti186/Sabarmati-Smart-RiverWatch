@@ -5,7 +5,6 @@ import compression from 'compression';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import mongoose from 'mongoose';
 import path from 'path';
 
 // Routes
@@ -23,11 +22,11 @@ import volunteerRoutes from './routes/volunteer.routes';
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
-import { rateLimiter } from './middleware/rateLimiter';
 
 // Config
 import { config } from './config/config';
 import { logger } from './utils/logger';
+import { initializeFirebase } from './config/firebase';
 
 // Socket handlers
 import { initializeSocketHandlers } from './sockets/socketHandlers';
@@ -48,19 +47,19 @@ export class App {
       },
     });
 
-    this.connectDatabase();
+    this.initializeFirebase();
     this.initializeMiddlewares();
     this.initializeRoutes();
     this.initializeSocketHandlers();
     this.initializeErrorHandling();
   }
 
-  private async connectDatabase(): Promise<void> {
+  private initializeFirebase(): void {
     try {
-      await mongoose.connect(config.mongoUri);
-      logger.info('✅ MongoDB connected successfully');
+      initializeFirebase();
+      logger.info('✅ Firebase connected successfully');
     } catch (error) {
-      logger.error('❌ MongoDB connection error:', error);
+      logger.error('❌ Firebase connection error:', error);
       process.exit(1);
     }
   }
@@ -93,9 +92,6 @@ export class App {
 
     // Static files
     this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-    // Rate limiting
-    this.app.use('/api/', rateLimiter);
 
     // Health check
     this.app.get('/health', (req: Request, res: Response) => {

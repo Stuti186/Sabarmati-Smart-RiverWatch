@@ -1,8 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
-import { User, IUser } from '../models/User.model';
+import { getFirestore } from '../config/firebase';
 import { logger } from '../utils/logger';
+
+export interface IUser {
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  avatar?: string;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+  notificationSettings?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+  rewardPoints?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface AuthRequest extends Request {
   user?: IUser;
@@ -35,10 +58,11 @@ export const protect = async (
       // Verify token
       const decoded = jwt.verify(token, config.jwtSecret) as { id: string };
 
-      // Get user from token
-      const user = await User.findById(decoded.id).select('-password');
+      // Get user from Firestore
+      const db = getFirestore();
+      const userDoc = await db.collection('users').doc(decoded.id).get();
 
-      if (!user) {
+      if (!userDoc.exists) {
         res.status(401).json({
           success: false,
           message: 'User not found',
@@ -46,8 +70,25 @@ export const protect = async (
         return;
       }
 
+      const userData = userDoc.data();
+      const user: IUser = {
+        id: userDoc.id,
+        email: userData?.email || '',
+        username: userData?.username || '',
+        role: userData?.role || 'user',
+        firstName: userData?.firstName,
+        lastName: userData?.lastName,
+        phoneNumber: userData?.phoneNumber,
+        avatar: userData?.avatar,
+        location: userData?.location,
+        notificationSettings: userData?.notificationSettings,
+        rewardPoints: userData?.rewardPoints || 0,
+        createdAt: userData?.createdAt?.toDate() || new Date(),
+        updatedAt: userData?.updatedAt?.toDate() || new Date(),
+      };
+
       req.user = user;
-      req.userId = user._id.toString();
+      req.userId = userDoc.id;
       next();
     } catch (error) {
       res.status(401).json({

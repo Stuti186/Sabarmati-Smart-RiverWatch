@@ -1,21 +1,24 @@
 import { Router } from 'express';
-import { protect } from '../middleware/auth';
+import { protect, authorize } from '../middleware/auth';
+import {
+  getSensors,
+  getSensorById,
+  getSensorsNearby,
+  createSensor,
+  updateSensor,
+  deleteSensor,
+} from '../controllers/sensor.controller';
 
 const router = Router();
 
-// Placeholder - full implementation would include:
-// - GET /sensors - Get all sensors
-// - GET /sensors/:id - Get sensor by ID
-// - POST /sensors - Create sensor (admin)
-// - PUT /sensors/:id - Update sensor (admin)
-// - DELETE /sensors/:id - Delete sensor (admin)
-// - GET /sensors/nearby - Get sensors near location
+// Public routes
+router.get('/', getSensors);
+router.get('/nearby', getSensorsNearby);
+router.get('/:id', getSensorById);
 
-router.get('/', async (req, res) => {
-  res.json({
-    success: true,
-    message: 'Sensor routes to be implemented',
-  });
-});
+// Admin routes
+router.post('/', protect, authorize('admin'), createSensor);
+router.put('/:id', protect, authorize('admin'), updateSensor);
+router.delete('/:id', protect, authorize('admin'), deleteSensor);
 
 export default router;

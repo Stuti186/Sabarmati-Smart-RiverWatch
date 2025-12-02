@@ -1,9 +1,13 @@
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { User } from '../models/User.model';
+import { getFirestore, getAuth } from '../config/firebase';
 import { AuthRequest } from '../middleware/auth';
 import { config } from '../config/config';
 import { logger } from '../utils/logger';
+import * as bcrypt from 'bcryptjs';
+
+const db = () => getFirestore();
+const auth = () => getAuth();
 
 // Generate JWT Token
 const generateToken = (id: string): string => {
@@ -22,9 +26,10 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
     const { name, email, password, phone } = req.body;
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const usersRef = db().collection('users');
+    const existingUser = await usersRef.where('email', '==', email).get();
 
-    if (userExists) {
+    if (!existingUser.empty) {
       res.status(400).json({
         success: false,
         message: 'User already exists with this email',
@@ -32,28 +37,46 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       return;
     }
 
-    // Create user
-    const user = await User.create({
-      name,
+    // Create Firebase Auth user
+    const firebaseUser = await auth().createUser({
       email,
       password,
-      phone,
+      displayName: name,
     });
 
+    // Hash password for Firestore storage
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user document in Firestore
+    const userData = {
+      uid: firebaseUser.uid,
+      name,
+      email,
+      phone: phone || '',
+      password: hashedPassword,
+      role: 'user',
+      rewardPoints: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await usersRef.doc(firebaseUser.uid).set(userData);
+
     // Generate tokens
-    const token = generateToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
+    const token = generateToken(firebaseUser.uid);
+    const refreshToken = generateRefreshToken(firebaseUser.uid);
 
     res.status(201).json({
       success: true,
       data: {
         user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          rewardPoints: user.rewardPoints,
+          id: firebaseUser.uid,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          role: userData.role,
+          rewardPoints: userData.rewardPoints,
         },
         token,
         refreshToken,
@@ -84,10 +107,11 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    // Find user in Firestore
+    const usersRef = db().collection('users');
+    const userSnapshot = await usersRef.where('email', '==', email).limit(1).get();
 
-    if (!user) {
+    if (userSnapshot.empty) {
       res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -95,8 +119,11 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if password matches
-    const isMatch = await user.comparePassword(password);
+    const userDoc = userSnapshot.docs[0];
+    const user = userDoc.data();
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       res.status(401).json({
@@ -106,29 +133,33 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
-    // Add FCM token if provided
-    if (fcmToken && !user.fcmTokens.includes(fcmToken)) {
-      user.fcmTokens.push(fcmToken);
-      await user.save();
+    // Update FCM token if provided
+    if (fcmToken) {
+      await userDoc.ref.update({
+        fcmToken,
+        lastLogin: new Date(),
+      });
+    } else {
+      await userDoc.ref.update({
+        lastLogin: new Date(),
+      });
     }
 
     // Generate tokens
-    const token = generateToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
+    const token = generateToken(userDoc.id);
+    const refreshToken = generateRefreshToken(userDoc.id);
 
     res.json({
       success: true,
       data: {
         user: {
-          id: user._id,
+          id: userDoc.id,
           name: user.name,
           email: user.email,
           phone: user.phone,
-          avatar: user.avatar,
           role: user.role,
           rewardPoints: user.rewardPoints,
-          preferences: user.preferences,
-          stats: user.stats,
+          avatar: user.avatar || null,
         },
         token,
         refreshToken,
@@ -143,53 +174,42 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   }
 };
 
-// @desc    Refresh token
-// @route   POST /api/v1/auth/refresh-token
-// @access  Public
-export const refreshToken = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      res.status(400).json({
-        success: false,
-        message: 'Refresh token is required',
-      });
-      return;
-    }
-
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as { id: string };
-
-    // Generate new tokens
-    const token = generateToken(decoded.id);
-    const newRefreshToken = generateRefreshToken(decoded.id);
-
-    res.json({
-      success: true,
-      data: {
-        token,
-        refreshToken: newRefreshToken,
-      },
-    });
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: 'Invalid or expired refresh token',
-    });
-  }
-};
-
 // @desc    Get current user
 // @route   GET /api/v1/auth/me
 // @access  Private
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const user = await User.findById(req.userId);
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authorized',
+      });
+      return;
+    }
+
+    const userDoc = await db().collection('users').doc(req.user.id).get();
+
+    if (!userDoc.exists) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    const user = userDoc.data();
 
     res.json({
       success: true,
-      data: user,
+      data: {
+        id: userDoc.id,
+        name: user?.name,
+        email: user?.email,
+        phone: user?.phone,
+        role: user?.role,
+        rewardPoints: user?.rewardPoints,
+        avatar: user?.avatar,
+      },
     });
   } catch (error: any) {
     logger.error('Get me error:', error);
@@ -205,27 +225,40 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 // @access  Private
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, phone, preferences } = req.body;
-
-    const user = await User.findById(req.userId);
-
-    if (!user) {
-      res.status(404).json({
+    if (!req.user) {
+      res.status(401).json({
         success: false,
-        message: 'User not found',
+        message: 'Not authorized',
       });
       return;
     }
 
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    if (preferences) user.preferences = { ...user.preferences, ...preferences };
+    const { name, phone, preferences } = req.body;
 
-    await user.save();
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (preferences) updateData.preferences = preferences;
+
+    await db().collection('users').doc(req.user.id).update(updateData);
+
+    const updatedDoc = await db().collection('users').doc(req.user.id).get();
+    const updatedUser = updatedDoc.data();
 
     res.json({
       success: true,
-      data: user,
+      data: {
+        id: updatedDoc.id,
+        name: updatedUser?.name,
+        email: updatedUser?.email,
+        phone: updatedUser?.phone,
+        role: updatedUser?.role,
+        rewardPoints: updatedUser?.rewardPoints,
+        avatar: updatedUser?.avatar,
+      },
     });
   } catch (error: any) {
     logger.error('Update profile error:', error);
@@ -236,11 +269,62 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
+// @desc    Upload user avatar
+// @route   POST /api/v1/auth/upload-avatar
+// @access  Private
+export const uploadAvatar = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authorized',
+      });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: 'Please upload a file',
+      });
+      return;
+    }
+
+    const avatarUrl = `/uploads/${req.file.filename}`;
+
+    await db().collection('users').doc(req.user.id).update({
+      avatar: avatarUrl,
+      updatedAt: new Date(),
+    });
+
+    res.json({
+      success: true,
+      data: {
+        avatar: avatarUrl,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Upload avatar error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error uploading avatar',
+    });
+  }
+};
+
 // @desc    Update password
 // @route   PUT /api/v1/auth/update-password
 // @access  Private
 export const updatePassword = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authorized',
+      });
+      return;
+    }
+
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -251,7 +335,8 @@ export const updatePassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const user = await User.findById(req.userId).select('+password');
+    const userDoc = await db().collection('users').doc(req.user.id).get();
+    const user = userDoc.data();
 
     if (!user) {
       res.status(404).json({
@@ -261,8 +346,8 @@ export const updatePassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    // Check current password
-    const isMatch = await user.comparePassword(currentPassword);
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
 
     if (!isMatch) {
       res.status(401).json({
@@ -272,8 +357,20 @@ export const updatePassword = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    user.password = newPassword;
-    await user.save();
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password in Firestore
+    await userDoc.ref.update({
+      password: hashedPassword,
+      updatedAt: new Date(),
+    });
+
+    // Update password in Firebase Auth
+    await auth().updateUser(req.user.id, {
+      password: newPassword,
+    });
 
     res.json({
       success: true,
@@ -288,44 +385,40 @@ export const updatePassword = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-// @desc    Upload avatar
-// @route   POST /api/v1/auth/upload-avatar
-// @access  Private
-export const uploadAvatar = async (req: AuthRequest, res: Response): Promise<void> => {
+// @desc    Refresh token
+// @route   POST /api/v1/auth/refresh-token
+// @access  Public
+export const refreshToken = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.file) {
-      res.status(400).json({
+    const { refreshToken: token } = req.body;
+
+    if (!token) {
+      res.status(401).json({
         success: false,
-        message: 'Please upload an image file',
+        message: 'Refresh token required',
       });
       return;
     }
 
-    const user = await User.findById(req.userId);
+    // Verify refresh token
+    const decoded = jwt.verify(token, config.jwtRefreshSecret) as { id: string };
 
-    if (!user) {
-      res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
-    }
-
-    // Update avatar path (or S3 URL if using cloud storage)
-    user.avatar = `/uploads/avatars/${req.file.filename}`;
-    await user.save();
+    // Generate new tokens
+    const newToken = generateToken(decoded.id);
+    const newRefreshToken = generateRefreshToken(decoded.id);
 
     res.json({
       success: true,
       data: {
-        avatar: user.avatar,
+        token: newToken,
+        refreshToken: newRefreshToken,
       },
     });
   } catch (error: any) {
-    logger.error('Upload avatar error:', error);
-    res.status(500).json({
+    logger.error('Refresh token error:', error);
+    res.status(401).json({
       success: false,
-      message: error.message || 'Error uploading avatar',
+      message: 'Invalid or expired refresh token',
     });
   }
 };
@@ -335,14 +428,21 @@ export const uploadAvatar = async (req: AuthRequest, res: Response): Promise<voi
 // @access  Private
 export const logout = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authorized',
+      });
+      return;
+    }
+
     const { fcmToken } = req.body;
 
+    // Remove FCM token
     if (fcmToken) {
-      const user = await User.findById(req.userId);
-      if (user) {
-        user.fcmTokens = user.fcmTokens.filter((token) => token !== fcmToken);
-        await user.save();
-      }
+      await db().collection('users').doc(req.user.id).update({
+        fcmToken: null,
+      });
     }
 
     res.json({

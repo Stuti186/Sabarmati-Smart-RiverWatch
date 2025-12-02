@@ -1,11 +1,22 @@
 import { Router } from 'express';
-import { protect } from '../middleware/auth';
+import { protect, authorize } from '../middleware/auth';
+import {
+  getWaterQualityReadings,
+  getLatestReadings,
+  createWaterQualityReading,
+  getWaterQualityStats,
+  deleteWaterQualityReading,
+} from '../controllers/waterQuality.controller';
 
 const router = Router();
 
-// Placeholder routes
-router.get('/', async (req, res) => {
-  res.json({ success: true, message: 'Water quality routes to be implemented' });
-});
+// Public routes
+router.get('/', getWaterQualityReadings);
+router.get('/latest', getLatestReadings);
+router.get('/stats', getWaterQualityStats);
+
+// Admin/sensor routes
+router.post('/', protect, createWaterQualityReading);
+router.delete('/:id', protect, authorize('admin'), deleteWaterQualityReading);
 
 export default router;

@@ -1,8 +1,9 @@
 import cron from 'node-cron';
 import { logger } from '../utils/logger';
-import { Alert } from '../models/Alert.model';
-import { Report } from '../models/Report.model';
+import { getFirestore } from '../config/firebase';
 import { config } from '../config/config';
+
+const db = () => getFirestore();
 
 export const startScheduledJobs = (): void => {
   logger.info('Starting scheduled jobs...');
@@ -10,18 +11,29 @@ export const startScheduledJobs = (): void => {
   // Check for expired alerts every hour
   cron.schedule('0 * * * *', async () => {
     try {
-      const expiredAlerts = await Alert.updateMany(
-        {
-          status: 'active',
-          expiresAt: { $lte: new Date() },
-        },
-        {
-          status: 'expired',
-        }
-      );
+      const alertsSnapshot = await db()
+        .collection('alerts')
+        .where('status', '==', 'active')
+        .get();
 
-      if (expiredAlerts.modifiedCount > 0) {
-        logger.info(`Expired ${expiredAlerts.modifiedCount} alerts`);
+      let expiredCount = 0;
+      const now = new Date();
+
+      for (const doc of alertsSnapshot.docs) {
+        const alertData = doc.data();
+        const expiresAt = alertData.expiresAt?.toDate?.() || null;
+        
+        if (expiresAt && expiresAt <= now) {
+          await doc.ref.update({
+            status: 'expired',
+            updatedAt: new Date(),
+          });
+          expiredCount++;
+        }
+      }
+
+      if (expiredCount > 0) {
+        logger.info(`Expired ${expiredCount} alerts`);
       }
     } catch (error) {
       logger.error('Error expiring alerts:', error);
@@ -34,13 +46,25 @@ export const startScheduledJobs = (): void => {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - config.cleanupOldReportsDays);
 
-      const deletedReports = await Report.deleteMany({
-        createdAt: { $lt: cutoffDate },
-        status: { $in: ['resolved', 'rejected'] },
-      });
+      const reportsSnapshot = await db()
+        .collection('reports')
+        .where('status', 'in', ['resolved', 'rejected'])
+        .get();
 
-      if (deletedReports.deletedCount > 0) {
-        logger.info(`Cleaned up ${deletedReports.deletedCount} old reports`);
+      let deletedCount = 0;
+
+      for (const doc of reportsSnapshot.docs) {
+        const reportData = doc.data();
+        const createdAt = reportData.createdAt?.toDate?.() || new Date(reportData.createdAt);
+        
+        if (createdAt < cutoffDate) {
+          await doc.ref.delete();
+          deletedCount++;
+        }
+      }
+
+      if (deletedCount > 0) {
+        logger.info(`Cleaned up ${deletedCount} old reports`);
       }
     } catch (error) {
       logger.error('Error cleaning up old reports:', error);
@@ -53,13 +77,25 @@ export const startScheduledJobs = (): void => {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - config.cleanupOldAlertsDays);
 
-      const deletedAlerts = await Alert.deleteMany({
-        createdAt: { $lt: cutoffDate },
-        status: { $in: ['resolved', 'expired'] },
-      });
+      const alertsSnapshot = await db()
+        .collection('alerts')
+        .where('status', 'in', ['resolved', 'expired'])
+        .get();
 
-      if (deletedAlerts.deletedCount > 0) {
-        logger.info(`Cleaned up ${deletedAlerts.deletedCount} old alerts`);
+      let deletedCount = 0;
+
+      for (const doc of alertsSnapshot.docs) {
+        const alertData = doc.data();
+        const createdAt = alertData.createdAt?.toDate?.() || new Date(alertData.createdAt);
+        
+        if (createdAt < cutoffDate) {
+          await doc.ref.delete();
+          deletedCount++;
+        }
+      }
+
+      if (deletedCount > 0) {
+        logger.info(`Cleaned up ${deletedCount} old alerts`);
       }
     } catch (error) {
       logger.error('Error cleaning up old alerts:', error);

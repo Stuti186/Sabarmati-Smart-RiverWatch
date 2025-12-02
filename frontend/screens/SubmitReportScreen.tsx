@@ -491,11 +491,9 @@ export default function SubmitReportScreen() {
         >
           <Pressable
             onPress={handleSubmit}
-            disabled={submitting || !location || !description.trim()}
             style={({ pressed }) => [
               styles.submitButton,
               pressed && styles.submitButtonPressed,
-              (submitting || !location || !description.trim()) && styles.submitButtonDisabled,
             ]}
           >
             <LinearGradient
@@ -832,9 +830,6 @@ const styles = StyleSheet.create({
   submitButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
   },
   submitButtonGradient: {
     flexDirection: 'row',
