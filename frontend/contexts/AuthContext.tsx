@@ -12,7 +12,7 @@ import React, { ReactNode, createContext, useContext, useEffect, useState } from
 
 // DEV MODE: Enable this for development without Firebase
 // Set FORCE_DEV_AUTH to true to bypass Firebase authentication during development
-const FORCE_DEV_AUTH = true; // <-- SET TO false WHEN YOU HAVE REAL FIREBASE USERS
+const FORCE_DEV_AUTH = false; // <-- SET TO false WHEN YOU HAVE REAL FIREBASE USERS
 const DEV_MODE = __DEV__ && (FORCE_DEV_AUTH || !auth);
 const DEV_USER = {
   uid: 'dev-user-123',
