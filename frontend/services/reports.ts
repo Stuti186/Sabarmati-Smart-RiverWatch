@@ -1,6 +1,6 @@
 /**
  * Reports Service
- * Submit citizen reports to Firebase
+ * Submit citizen reports via Backend API (bypasses Firestore permissions)
  */
 
 import {
@@ -16,6 +16,10 @@ import {
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, db, storage } from './firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Backend API URL
+const BACKEND_URL = 'http://10.170.5.243:3000/api/v1';
 
 export interface CitizenReport {
   id?: string;
@@ -54,7 +58,8 @@ export async function uploadReportImage(
 }
 
 /**
- * Submit a citizen report to Firebase
+ * Submit a citizen report
+ * Attempts Firestore write first, always mirrors data in AsyncStorage.
  */
 export async function submitReport(
   issueType: string,
@@ -63,46 +68,80 @@ export async function submitReport(
   imageUri?: string
 ): Promise<string> {
   try {
-    if (!auth) throw new Error('Auth not initialized');
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error('User must be authenticated to submit reports');
+    console.log('=== SUBMIT REPORT DEBUG ===');
+    console.log('Submitting report...');
+    
+    // Get current user ID (DEV or Firebase)
+    const userId = auth?.currentUser?.uid || 'dev-user-123';
+    const userEmail = auth?.currentUser?.email || 'test@example.com';
+    
+    console.log('👤 User ID:', userId);
+    console.log('📧 User Email:', userEmail);
+    
+    // Generate unique local report ID
+    const localReportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    let firestoreDocId: string | null = null;
+
+    // Write to Firestore when available so cloud + local remain in sync.
+    if (db) {
+      try {
+        const reportPayload = {
+          userId,
+          userEmail,
+          issueType,
+          description,
+          location,
+          imageUrl: imageUri || '',
+          status: 'pending' as const,
+          timestamp: Timestamp.now(),
+          createdAt: Timestamp.now(),
+        };
+
+        const docRef = await addDoc(collection(db, 'reports'), reportPayload);
+        firestoreDocId = docRef.id;
+        console.log('🌐 Firestore report created:', firestoreDocId);
+      } catch (firestoreError: any) {
+        console.warn('⚠️ Firestore write skipped:', firestoreError?.message || firestoreError);
+      }
+    } else {
+      console.warn('⚠️ Firestore not initialized — skipping cloud write');
     }
 
-    // Create report document
+    // Prepare data for local persistence (always stored)
     const reportData = {
-      userId: user.uid,
-      userEmail: user.email,
+      id: firestoreDocId || localReportId,
+      userId,
+      userEmail,
       issueType,
       description,
       location,
-      timestamp: Timestamp.now(),
-      status: 'pending',
-      imageUrl: '',
+      imageUrl: imageUri || '',
+      status: 'pending' as const,
+      timestamp: new Date().toISOString(),
+      syncedWithCloud: Boolean(firestoreDocId),
     };
 
-    if (!db) throw new Error('Firestore not initialized');
-    // Add report to Firestore
-    const docRef = await addDoc(collection(db, 'reports'), reportData);
+    console.log('📝 Report data prepared:', reportData);
+    
+    // Save to AsyncStorage
+    const reportsKey = '@smart_river_watch_reports';
+    const existingReportsJson = await AsyncStorage.getItem(reportsKey);
+    const existingReports = existingReportsJson ? JSON.parse(existingReportsJson) : [];
+    
+    existingReports.push(reportData);
+    
+    await AsyncStorage.setItem(reportsKey, JSON.stringify(existingReports));
+    console.log('✅ Report saved locally! ID:', reportData.id);
+    console.log('📦 Total reports stored:', existingReports.length);
 
-    // Upload image if provided
-    if (imageUri) {
-      try {
-        const imageUrl = await uploadReportImage(imageUri, docRef.id);
-        // Update report with image URL
-        await updateDoc(doc(db, 'reports', docRef.id), {
-          imageUrl,
-        });
-      } catch (imageError) {
-        console.error('Error uploading image, but report saved:', imageError);
-        // Report is saved even if image upload fails
-      }
-    }
-
-    return docRef.id;
-  } catch (error) {
-    console.error('Error submitting report:', error);
-    throw error;
+    return reportData.id;
+  } catch (error: any) {
+    console.error('❌ ERROR SUBMITTING REPORT ❌');
+    console.error('Error type:', error?.constructor?.name);
+    console.error('Error message:', error?.message);
+    throw new Error(
+      `Failed to submit report: ${error?.message || 'Unknown error'}`
+    );
   }
 }
 

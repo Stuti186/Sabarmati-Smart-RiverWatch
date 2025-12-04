@@ -5,6 +5,7 @@
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -51,6 +52,16 @@ export async function register(
       email,
       password
     );
+    
+    // Send verification email
+    try {
+      await sendEmailVerification(userCredential.user);
+      console.log('Verification email sent to:', email);
+    } catch (verifyError) {
+      console.error('Failed to send verification email:', verifyError);
+      // Don't throw - allow registration to succeed even if email fails
+    }
+    
     return userCredential;
   } catch (error: any) {
     throw new Error(getAuthErrorMessage(error.code));
@@ -128,5 +139,19 @@ function getAuthErrorMessage(errorCode: string): string {
  */
 export function getCurrentUser(): User | null {
   return auth?.currentUser ?? null;
+}
+
+/**
+ * Send verification email to current user
+ */
+export async function sendVerificationEmail(): Promise<void> {
+  if (!auth?.currentUser) {
+    throw new Error('No user is currently signed in');
+  }
+  try {
+    await sendEmailVerification(auth.currentUser);
+  } catch (error: any) {
+    throw new Error('Failed to send verification email');
+  }
 }
 

@@ -22,6 +22,11 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+console.log('🔥 Firebase Config Loaded:', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+});
+
 // Initialize Firebase
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
