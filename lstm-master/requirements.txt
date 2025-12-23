@@ -1,0 +1,18 @@
+neuralhydrology
+hydra-core
+hydra_colorlog
+earthengine-api
+geemap
+ipykernel
+selenium
+xarray
+netCDF4
+cftime
+seaborn
+astral
+openpyxl
+# mamba-ssm[causal-conv1d]  # Disabled due to install bug
+wandb
+wandb-workspaces
+python-dotenv
+torch

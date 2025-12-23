@@ -24,7 +24,13 @@ This backend has been fully migrated to **Firebase Firestore** for database oper
 
 ### 3. Configure Environment Variables
 
-Create a `.env` file in the backend directory with the following:
+1. **Copy the example file:**
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` file** with the following:
 
 ```env
 # Server

@@ -1,0 +1,8 @@
+
+basin_id: sabarmati
+path: ML/basins/sabarmati
+seq_length: 168
+forecast_horizon: 24
+variables:
+  - rainfall_mm
+  - discharge_m3s

@@ -5,6 +5,16 @@ import { AuthRequest } from '../middleware/auth';
 
 const db = () => getFirestore();
 
+// In-memory temperature state (for multi-device sync)
+let temperatureState: {
+  temperature: number;
+  heatMode: boolean;
+  coolMode: boolean;
+  lastUpdated: string;
+  deviceId: string;
+  leaderDeviceId?: string;
+} | null = null;
+
 // Get water quality readings with filtering
 export const getWaterQualityReadings = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -248,6 +258,67 @@ export const deleteWaterQualityReading = async (req: AuthRequest, res: Response)
     res.status(500).json({
       success: false,
       message: 'Error deleting water quality reading',
+    });
+  }
+};
+
+// Get temperature state (for multi-device sync)
+export const getTemperatureState = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    // Return default state if none exists
+    if (!temperatureState) {
+      temperatureState = {
+        temperature: 25.7,
+        heatMode: false,
+        coolMode: false,
+        lastUpdated: new Date().toISOString(),
+        deviceId: 'default',
+        leaderDeviceId: undefined,
+      };
+    }
+    
+    res.status(200).json(temperatureState);
+  } catch (error) {
+    logger.error('Get temperature state error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching temperature state',
+    });
+  }
+};
+
+// Update temperature state (for multi-device sync)
+export const updateTemperatureState = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { temperature, heatMode, coolMode, deviceId, leaderDeviceId } = req.body;
+    
+    // Update state
+    temperatureState = {
+      temperature: temperature !== undefined ? temperature : (temperatureState?.temperature || 25.7),
+      heatMode: heatMode !== undefined ? heatMode : (temperatureState?.heatMode || false),
+      coolMode: coolMode !== undefined ? coolMode : (temperatureState?.coolMode || false),
+      lastUpdated: new Date().toISOString(),
+      deviceId: deviceId || 'unknown',
+      leaderDeviceId: leaderDeviceId !== undefined ? leaderDeviceId : temperatureState?.leaderDeviceId,
+    };
+    
+    // Emit socket event for real-time updates
+    if (global.socketIO) {
+      global.socketIO.emitWaterQualityUpdate({
+        type: 'temperature_update',
+        ...temperatureState,
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: temperatureState,
+    });
+  } catch (error) {
+    logger.error('Update temperature state error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating temperature state',
     });
   }
 };

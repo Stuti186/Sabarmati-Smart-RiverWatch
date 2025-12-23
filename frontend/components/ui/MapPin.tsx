@@ -2,7 +2,6 @@
  * MapPin Component
  * Premium map pin marker with status indicator
  */
-
 import React from 'react';
 import { View, Text, StyleSheet, ViewProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

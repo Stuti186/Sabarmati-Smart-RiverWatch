@@ -1,0 +1,92 @@
+{
+  "basin": "Sabarmati",
+  "grid_resolution": "500m",
+  "input_features": [
+    {
+      "name": "rainfall",
+      "type": "numeric",
+      "unit": "mm",
+      "temporal": "hourly",
+      "source": "NASA / IMD rainfall dataset",
+      "description": "Hourly rainfall over each grid point in the basin",
+      "shapefile_field": null
+    },
+    {
+      "name": "river_discharge",
+      "type": "numeric",
+      "unit": "m3/s",
+      "temporal": "hourly",
+      "source": "Sabarmati river discharge stations",
+      "description": "Discharge measured at river gauge stations, interpolated across basin",
+      "shapefile_field": "station_id"
+    },
+    {
+      "name": "elevation",
+      "type": "numeric",
+      "unit": "meters",
+      "temporal": "static",
+      "source": "DEM / SRTM 30m",
+      "description": "Digital Elevation Model value per grid point",
+      "shapefile_field": null
+    },
+    {
+      "name": "slope",
+      "type": "numeric",
+      "unit": "degrees",
+      "temporal": "static",
+      "source": "Derived from DEM",
+      "description": "Slope of terrain derived from DEM",
+      "shapefile_field": null
+    },
+    {
+      "name": "distance_from_river",
+      "type": "numeric",
+      "unit": "meters",
+      "temporal": "static",
+      "source": "Sabarmati river shapefile",
+      "description": "Euclidean distance from river centerline for each grid point",
+      "shapefile_field": null
+    },
+    {
+      "name": "land_use",
+      "type": "categorical",
+      "categories": ["urban", "forest", "agriculture", "barren", "water"],
+      "temporal": "static",
+      "source": "Land use / land cover GIS dataset",
+      "description": "Land use class per grid point",
+      "shapefile_field": "LULC_code"
+    },
+    {
+      "name": "soil_type",
+      "type": "categorical",
+      "categories": ["clay", "silt", "sand", "loam"],
+      "temporal": "static",
+      "source": "Soil map of Sabarmati basin",
+      "description": "Soil type per grid point",
+      "shapefile_field": "soil_code"
+    },
+    {
+      "name": "sub_basin_id",
+      "type": "categorical",
+      "categories": [],
+      "temporal": "static",
+      "source": "Sabarmati sub-basin shapefile",
+      "description": "ID of sub-basin each grid point belongs to",
+      "shapefile_field": "subbasin_id"
+    }
+  ],
+  "target_variable": {
+    "name": "flood_level",
+    "type": "numeric",
+    "unit": "m",
+    "temporal": "hourly",
+    "source": "River gauge stations",
+    "description": "Hourly water level at each river station, interpolated across basin",
+    "shapefile_field": "station_id"
+  },
+  "notes": [
+    "Temporal features (rainfall, discharge, flood_level) should be aligned to the same hourly timestamps.",
+    "Static features (elevation, slope, land_use, soil_type, distance_from_river) are used as spatial attributes for each grid point.",
+    "Sub-basin IDs help group grid points and analyze local hydrological response."
+  ]
+}

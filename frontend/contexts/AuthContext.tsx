@@ -65,7 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     // DEV MODE: Check for stored dev session
     if (DEV_MODE) {
-      console.log('🔧 DEV MODE: Firebase not configured, using development authentication');
+      // Suppress dev mode message - Firebase warnings already handled in firebase.ts
       const checkDevAuth = async () => {
         try {
           const devAuth = await AsyncStorage.getItem(DEV_AUTH_KEY);

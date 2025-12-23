@@ -46,6 +46,7 @@ interface Config {
   };
   cleanupOldReportsDays: number;
   cleanupOldAlertsDays: number;
+  googleGeminiApiKey: string;
 }
 
 export const config: Config = {
@@ -56,7 +57,12 @@ export const config: Config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8081'],
+  corsOrigin: process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || [
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://localhost:3000',
+    'exp://localhost:8081',
+  ],
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
   firebasePrivateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
   firebaseClientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
@@ -90,4 +96,5 @@ export const config: Config = {
   },
   cleanupOldReportsDays: parseInt(process.env.CLEANUP_OLD_REPORTS_DAYS || '90', 10),
   cleanupOldAlertsDays: parseInt(process.env.CLEANUP_OLD_ALERTS_DAYS || '30', 10),
+  googleGeminiApiKey: process.env.GOOGLE_GEMINI_API_KEY || '',
 };

@@ -4,7 +4,7 @@
  * Updated for 2024/2025 design standards
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp, FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -25,6 +27,7 @@ import { BoundingBox } from '@/components/ui';
 import { simulateAIDetection, getDetectionSummary, getAverageConfidence } from '@/utils/aiDetection';
 import type { BoundingBoxData } from '@/components/ui/BoundingBox';
 import { useRouter } from 'expo-router';
+import { analyzeWasteWithGemini } from '@/services/geminiClient';
 
 const { width } = Dimensions.get('window');
 const IMAGE_WIDTH = width - 40;
@@ -53,10 +56,13 @@ export default function WasteUploadScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [detections, setDetections] = useState<BoundingBoxData[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
     height: number;
   } | null>(null);
+
+  const hasGeminiKey = useMemo(() => !!process.env.EXPO_PUBLIC_GEMINI_API_KEY, []);
 
   const requestPermissions = async () => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
@@ -126,14 +132,75 @@ export default function WasteUploadScreen() {
     }
   };
 
+  const toDataUri = async (uri: string): Promise<string> => {
+    if (uri.startsWith('data:')) return uri;
+
+    // Web: fetch and convert
+    if (Platform.OS === 'web') {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      return await new Promise((resolve, reject) => {
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else reject(new Error('Failed to convert image to base64'));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Native: use FileSystem
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const mimeType = uri.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    return `data:${mimeType};base64,${base64}`;
+  };
+
   const processImage = async () => {
     if (!image) return;
     setProcessing(true);
-    setTimeout(() => {
+    setStatus(hasGeminiKey ? 'Sending to Gemini...' : 'Simulating detection...');
+    try {
+      let detected: BoundingBoxData[] = [];
+
+      if (hasGeminiKey) {
+        const dataUri = await toDataUri(image);
+        const result = await analyzeWasteWithGemini(dataUri);
+
+        // Map Gemini results to bounding boxes (placeholder positions)
+        detected = result.items.slice(0, 5).map((item, idx) => ({
+          id: `${item.label}-${idx}`,
+          label: item.label,
+          confidence: item.confidence || 0.5,
+          color: COLORS.primaryBlue,
+          // simple distributed boxes
+          x: 10 + (idx * 12) % 60,
+          y: 10 + (idx * 8) % 50,
+          width: 30,
+          height: 20,
+        }));
+
+        // If Gemini returns nothing, fallback to simulate
+        if (!detected.length) {
+          detected = simulateAIDetection();
+        }
+      } else {
+        // Fallback simulation
+        detected = simulateAIDetection();
+      }
+
+      setDetections(detected);
+      setStatus(null);
+    } catch (error: any) {
+      console.warn('Gemini analysis failed, falling back to simulation:', error?.message);
       const detected = simulateAIDetection();
       setDetections(detected);
+      setStatus('Using offline simulation (Gemini unavailable)');
+    } finally {
       setProcessing(false);
-    }, 2000);
+    }
   };
 
   const handleReset = () => {
@@ -255,7 +322,7 @@ export default function WasteUploadScreen() {
             <View style={styles.processingOverlay}>
               <View style={styles.processingCard}>
                 <ActivityIndicator size="large" color={COLORS.primaryBlue} />
-                <Text style={styles.processingText}>Analyzing image...</Text>
+                <Text style={styles.processingText}>{status || 'Analyzing image...'}</Text>
               </View>
             </View>
           )}

@@ -9,6 +9,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import SOSButton from '@/components/ui/SOSButton';
 import {
   Dimensions,
   Platform,
@@ -21,6 +22,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DesignSystem } from '@/theme/designSystem';
 
 const { width } = Dimensions.get('window');
 
@@ -169,7 +171,7 @@ export default function DashboardScreen() {
             />
           }>
           
-          {/* Header Section */}
+          {/* Header Section - Fixed spacing */}
           <Animated.View
             entering={FadeInDown.duration(600).delay(100)}
             style={styles.header}>
@@ -193,7 +195,20 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* River Health Card - Premium Design */}
+          {/* SOS Emergency Button - Centered */}
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(150)}
+            style={styles.sosContainer}>
+            <View style={styles.sosWrapper}>
+              <SOSButton
+                onConfirm={async () => {
+                  router.push('/emergency');
+                }}
+              />
+            </View>
+          </Animated.View>
+
+          {/* River Health Card - Redesigned */}
           <Animated.View
             entering={FadeInUp.duration(600).delay(200)}
             style={styles.healthCardContainer}>
@@ -201,49 +216,55 @@ export default function DashboardScreen() {
               activeOpacity={0.95}
               onPress={() => router.push('/(tabs)/monitor')}>
               <View style={styles.healthCard}>
-                <View style={styles.healthCardGradient}>
-                  
-                  {/* Card Header */}
-                  <View style={styles.cardHeader}>
-                    <View>
-                      <Text style={styles.cardTitle}>River Health Index</Text>
-                      <Text style={styles.cardSubtitle}>Sabarmati River • Ahmedabad</Text>
+                <BlurView intensity={Platform.OS === 'ios' ? 80 : 0} tint="light" style={styles.healthCardBlur}>
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.25)', 'rgba(255, 255, 255, 0.15)']}
+                    style={styles.healthCardGradient}>
+                    
+                    {/* Card Header - Title and Status in one line */}
+                    <View style={styles.cardHeader}>
+                      <View style={styles.cardHeaderLeft}>
+                        <Text style={styles.cardTitle}>River Health Index</Text>
+                        <Text style={styles.cardSubtitle}>Sabarmati River · Ahmedabad</Text>
+                      </View>
+                      <View style={styles.statusBadge}>
+                        <View style={styles.statusDot} />
+                        <Text style={styles.statusText}>Good</Text>
+                      </View>
                     </View>
-                    <View style={styles.statusBadge}>
-                      <View style={styles.statusDot} />
-                      <Text style={styles.statusText}>Good</Text>
-                    </View>
-                  </View>
 
-                  {/* Score Display */}
-                  <View style={styles.scoreContainer}>
-                    <Text style={styles.scoreValue}>82</Text>
-                    <Text style={styles.scoreMax}>/100</Text>
-                  </View>
+                    {/* Score Display - Improved typography */}
+                    <View style={styles.scoreContainer}>
+                      <Text style={styles.scoreValue}>82</Text>
+                      <Text style={styles.scoreMax}>/100</Text>
+                    </View>
 
-                  {/* Metrics Row */}
-                  <View style={styles.metricsContainer}>
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>pH Level</Text>
-                      <Text style={styles.metricValue}>7.2</Text>
+                    {/* Metrics Row - Equal width, better spacing */}
+                    <View style={styles.metricsContainer}>
+                      <View style={styles.metricItem}>
+                        <Text style={styles.metricLabel}>pH Level</Text>
+                        <Text style={styles.metricValue}>7.2</Text>
+                      </View>
+                      <View style={styles.metricDivider} />
+                      <View style={styles.metricItem}>
+                        <Text style={styles.metricLabel}>Dissolved O₂</Text>
+                        <Text style={styles.metricValue}>6.5</Text>
+                        <Text style={styles.metricUnit}>mg/L</Text>
+                      </View>
+                      <View style={styles.metricDivider} />
+                      <View style={styles.metricItem}>
+                        <Text style={styles.metricLabel}>Turbidity</Text>
+                        <Text style={styles.metricValue}>12</Text>
+                        <Text style={styles.metricUnit}>NTU</Text>
+                      </View>
                     </View>
-                    <View style={styles.metricDivider} />
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Dissolved O₂</Text>
-                      <Text style={styles.metricValue}>6.5 mg/L</Text>
-                    </View>
-                    <View style={styles.metricDivider} />
-                    <View style={styles.metricItem}>
-                      <Text style={styles.metricLabel}>Turbidity</Text>
-                      <Text style={styles.metricValue}>12 NTU</Text>
-                    </View>
-                  </View>
-                </View>
+                  </LinearGradient>
+                </BlurView>
               </View>
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Quick Actions Section */}
+          {/* Quick Actions Section - Improved grid */}
           <Animated.View
             entering={FadeInUp.duration(500).delay(300)}
             style={styles.sectionContainer}>
@@ -258,9 +279,9 @@ export default function DashboardScreen() {
                     onPress={() => router.push(action.route as any)}
                     activeOpacity={0.85}
                     style={styles.actionButton}>
-                    <View style={styles.actionCard}>
+                    <View style={[styles.actionCard, { backgroundColor: COLORS.cardBg }]}>
                       <View style={[styles.actionIconContainer, { backgroundColor: action.bgColor }]}>
-                        <Ionicons name={action.icon as any} size={26} color={action.color} />
+                        <Ionicons name={action.icon as any} size={28} color={action.color} />
                       </View>
                       <Text style={styles.actionTitle}>{action.title}</Text>
                     </View>
@@ -288,7 +309,7 @@ export default function DashboardScreen() {
             </View>
           </Animated.View>
 
-          {/* Bottom Spacing for Tab Bar */}
+          {/* Bottom Spacing for Tab Bar - Increased padding */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </SafeAreaView>
@@ -325,280 +346,301 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: DesignSystem.spacing.screenPadding,
+    paddingTop: Platform.OS === 'ios' ? DesignSystem.spacing.xxxl : DesignSystem.spacing.xxl,
+    paddingBottom: 120, // Extra padding for tab bar
   },
 
-  // Header Styles
+  // Header Styles - Fixed spacing
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 28,
-    paddingTop: 8,
+    marginBottom: DesignSystem.spacing.xxl,
+    paddingTop: Platform.OS === 'ios' ? DesignSystem.spacing.md : DesignSystem.spacing.lg,
   },
   headerTextContainer: {
     flex: 1,
   },
   greeting: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: DesignSystem.typography.sizes.md,
+    fontWeight: DesignSystem.typography.weights.medium,
     color: 'rgba(255, 255, 255, 0.75)',
-    marginBottom: 4,
-    letterSpacing: 0.3,
+    marginBottom: DesignSystem.spacing.xs,
+    letterSpacing: DesignSystem.typography.letterSpacing.wide,
   },
   userName: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: DesignSystem.typography.sizes.xxxl,
+    fontWeight: DesignSystem.typography.weights.bold,
     color: COLORS.textWhite,
-    letterSpacing: -0.5,
+    letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
   profileButton: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    borderRadius: DesignSystem.radius.avatar / 2,
+    ...DesignSystem.shadows.md,
   },
   profileGradient: {
     flex: 1,
-    borderRadius: 26,
+    borderRadius: DesignSystem.radius.avatar / 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2.5,
     borderColor: 'rgba(255, 255, 255, 0.35)',
   },
   profileInitials: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: DesignSystem.typography.sizes.xl,
+    fontWeight: DesignSystem.typography.weights.bold,
     color: COLORS.textWhite,
   },
 
-  // Health Card Styles
+  // SOS Button Styles - Centered
+  sosContainer: {
+    alignItems: 'center',
+    marginBottom: DesignSystem.spacing.xxl,
+    marginTop: DesignSystem.spacing.lg,
+  },
+  sosWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Health Card Styles - Redesigned
   healthCardContainer: {
-    marginBottom: 28,
+    marginBottom: DesignSystem.spacing.xxl,
   },
   healthCard: {
-    borderRadius: 24,
+    borderRadius: DesignSystem.radius.xxl,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#1E3A8A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 12,
+    ...DesignSystem.shadows.xl,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  healthCardBlur: {
+    borderRadius: DesignSystem.radius.xxl,
+    overflow: 'hidden',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+  },
   healthCardGradient: {
-    padding: 24,
+    padding: DesignSystem.spacing.xxl,
     backgroundColor: 'transparent',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: DesignSystem.spacing.lg,
+  },
+  cardHeaderLeft: {
+    flex: 1,
+    marginRight: DesignSystem.spacing.md,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: DesignSystem.typography.sizes.xxl,
+    fontWeight: DesignSystem.typography.weights.bold,
     color: COLORS.textWhite,
-    marginBottom: 4,
+    marginBottom: DesignSystem.spacing.xs,
+    letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
   cardSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: DesignSystem.typography.sizes.sm,
+    fontWeight: DesignSystem.typography.weights.medium,
+    color: 'rgba(255, 255, 255, 0.65)',
+    letterSpacing: DesignSystem.typography.letterSpacing.normal,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: DesignSystem.spacing.md,
+    paddingVertical: DesignSystem.spacing.xs,
+    borderRadius: DesignSystem.radius.pill,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
+    marginLeft: DesignSystem.spacing.md,
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.accentGreen,
-    marginRight: 6,
+    marginRight: DesignSystem.spacing.xs,
   },
   statusText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: DesignSystem.typography.sizes.sm,
+    fontWeight: DesignSystem.typography.weights.semibold,
     color: COLORS.textWhite,
   },
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 24,
+    marginBottom: DesignSystem.spacing.xxl,
   },
   scoreValue: {
-    fontSize: 64,
-    fontWeight: '800',
+    fontSize: 72,
+    fontWeight: DesignSystem.typography.weights.extrabold,
     color: COLORS.textWhite,
-    letterSpacing: -2,
+    letterSpacing: DesignSystem.typography.letterSpacing.tight,
+    lineHeight: 80,
   },
   scoreMax: {
-    fontSize: 22,
-    fontWeight: '600',
+    fontSize: DesignSystem.typography.sizes.xxl,
+    fontWeight: DesignSystem.typography.weights.semibold,
     color: 'rgba(255, 255, 255, 0.6)',
-    marginLeft: 4,
+    marginLeft: DesignSystem.spacing.xs,
+    lineHeight: 28,
   },
   metricsContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: DesignSystem.radius.lg,
+    padding: DesignSystem.spacing.lg,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   metricItem: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   metricLabel: {
-    fontSize: 11,
-    fontWeight: '500',
+    fontSize: DesignSystem.typography.sizes.xs,
+    fontWeight: DesignSystem.typography.weights.medium,
     color: 'rgba(255, 255, 255, 0.65)',
-    marginBottom: 4,
+    marginBottom: DesignSystem.spacing.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: DesignSystem.typography.letterSpacing.wider,
   },
   metricValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: DesignSystem.typography.sizes.base,
+    fontWeight: DesignSystem.typography.weights.bold,
     color: COLORS.textWhite,
+    lineHeight: 20,
+  },
+  metricUnit: {
+    fontSize: DesignSystem.typography.sizes.xs,
+    fontWeight: DesignSystem.typography.weights.medium,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 2,
   },
   metricDivider: {
     width: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    marginHorizontal: 8,
+    marginHorizontal: DesignSystem.spacing.sm,
   },
 
   // Section Styles
   sectionContainer: {
-    marginBottom: 24,
+    marginBottom: DesignSystem.spacing.xxl,
+    marginTop: DesignSystem.spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: DesignSystem.typography.sizes.lg,
+    fontWeight: DesignSystem.typography.weights.bold,
     color: COLORS.textWhite,
-    marginBottom: 16,
-    letterSpacing: -0.3,
+    marginBottom: DesignSystem.spacing.lg,
+    letterSpacing: DesignSystem.typography.letterSpacing.tight,
   },
 
-  // Quick Actions Styles
+  // Quick Actions Styles - Responsive grid
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
+    marginHorizontal: -DesignSystem.spacing.xs,
   },
   actionWrapper: {
-    width: '50%',
-    paddingHorizontal: 6,
-    marginBottom: 12,
+    width: width < 375 ? '50%' : '33.333%', // 2 columns on small, 3 on larger
+    paddingHorizontal: DesignSystem.spacing.xs,
+    marginBottom: DesignSystem.spacing.md,
   },
   actionButton: {
-    borderRadius: 18,
+    borderRadius: DesignSystem.radius.button,
+    overflow: 'hidden',
   },
   actionCard: {
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 18,
-    padding: 18,
+    height: 110,
+    borderRadius: DesignSystem.radius.button,
+    padding: DesignSystem.spacing.md,
     alignItems: 'center',
-    shadowColor: COLORS.primaryDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 5,
+    justifyContent: 'center',
+    ...DesignSystem.shadows.card,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   actionIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: DesignSystem.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.sm,
   },
   actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: DesignSystem.typography.sizes.sm,
+    fontWeight: DesignSystem.typography.weights.semibold,
     color: COLORS.textPrimary,
     textAlign: 'center',
+    lineHeight: 16,
   },
 
   // Alert Card Styles
   alertCard: {
-    borderRadius: 18,
+    borderRadius: DesignSystem.radius.lg,
     overflow: 'hidden',
     backgroundColor: Platform.OS === 'android' ? COLORS.cardBg : 'transparent',
-    shadowColor: COLORS.primaryDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    ...DesignSystem.shadows.md,
   },
   alertBlur: {
-    borderRadius: 18,
+    borderRadius: DesignSystem.radius.lg,
     overflow: 'hidden',
   },
   alertCardAndroid: {
     backgroundColor: COLORS.cardBg,
-    borderRadius: 18,
+    borderRadius: DesignSystem.radius.lg,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   alertContent: {
-    padding: 18,
+    padding: DesignSystem.spacing.lg,
   },
   alertHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: DesignSystem.spacing.md,
   },
   alertIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: DesignSystem.radius.md,
     backgroundColor: COLORS.accentOrangeBg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: DesignSystem.spacing.md,
   },
   alertTextContainer: {
     flex: 1,
   },
   alertTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: DesignSystem.typography.sizes.base,
+    fontWeight: DesignSystem.typography.weights.semibold,
     color: COLORS.textPrimary,
     marginBottom: 2,
   },
   alertTime: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: DesignSystem.typography.sizes.sm,
+    fontWeight: DesignSystem.typography.weights.medium,
     color: COLORS.textMuted,
   },
   alertDescription: {
-    fontSize: 14,
-    fontWeight: '400',
+    fontSize: DesignSystem.typography.sizes.md,
+    fontWeight: DesignSystem.typography.weights.regular,
     color: COLORS.textSecondary,
-    lineHeight: 21,
+    lineHeight: DesignSystem.typography.lineHeights.relaxed * DesignSystem.typography.sizes.md,
   },
 
   // Bottom Spacer
   bottomSpacer: {
-    height: 100,
+    height: DesignSystem.spacing.xxxl,
   },
 });

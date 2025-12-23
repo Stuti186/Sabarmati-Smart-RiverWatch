@@ -159,6 +159,13 @@ function RootLayoutNav() {
             headerShown: false,
           }} 
         />
+        <Stack.Screen 
+          name="emergency" 
+          options={{ 
+            title: 'Emergency SOS',
+            headerShown: false,
+          }} 
+        />
         
         {/* 404 */}
         <Stack.Screen name="+not-found" />

@@ -2,9 +2,12 @@
  * Application constants
  */
 
+import { getBackendUrlWithLogging } from '@/utils/getBackendUrl';
+
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://api.smartriverwatch.com',
+  // Use smart URL detection for monorepo setup
+  BASE_URL: getBackendUrlWithLogging(),
   TIMEOUT: 30000,
 };
 

@@ -80,7 +80,14 @@
           "locationWhenInUsePermission": "Allow Smart River Watch to use your location to automatically include it in your reports."
         }
       ],
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "ndkVersion": "29.0.14206865"
+          }
+        }
+      ],
       "expo-router"
     ],
     "experiments": {

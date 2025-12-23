@@ -9,7 +9,8 @@ class ApiService {
   private timeout: number;
 
   constructor() {
-    this.baseURL = API_CONFIG.BASE_URL;
+    // Add /api/v1 prefix for consistency with other services
+    this.baseURL = `${API_CONFIG.BASE_URL}/api/v1`;
     this.timeout = API_CONFIG.TIMEOUT;
   }
 

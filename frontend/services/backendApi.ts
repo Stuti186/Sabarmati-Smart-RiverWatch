@@ -6,9 +6,10 @@
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { API_CONFIG } from '@/constants';
 
-// Use your computer's local IP for physical device on same WiFi
-const BASE_URL = 'http://10.170.5.243:3000/api/v1';
+// Backend API base URL with /api/v1 prefix
+const BASE_URL = `${API_CONFIG.BASE_URL}/api/v1`;
 const TOKEN_KEY = '@smart_river_watch_token';
 
 console.log('🌐 Backend API URL:', BASE_URL);

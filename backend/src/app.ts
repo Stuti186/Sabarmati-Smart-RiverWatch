@@ -18,6 +18,8 @@ import alertRoutes from './routes/alert.routes';
 import userRoutes from './routes/user.routes';
 import rewardRoutes from './routes/reward.routes';
 import volunteerRoutes from './routes/volunteer.routes';
+import biodiversityRoutes from './routes/biodiversity.routes';
+import sosRoutes from './routes/sos.routes';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -117,6 +119,8 @@ export class App {
     this.app.use(`${apiPrefix}/users`, userRoutes);
     this.app.use(`${apiPrefix}/rewards`, rewardRoutes);
     this.app.use(`${apiPrefix}/volunteers`, volunteerRoutes);
+    this.app.use(`${apiPrefix}/biodiversity`, biodiversityRoutes);
+    this.app.use(`${apiPrefix}/sos`, sosRoutes);
 
     // Root endpoint
     this.app.get('/', (req: Request, res: Response) => {
@@ -124,6 +128,15 @@ export class App {
         message: 'Smart River Watch API',
         version: '1.0.0',
         documentation: '/api/docs',
+      });
+    });
+
+    // Health check endpoint (for frontend health monitoring)
+    this.app.get('/health', (req: Request, res: Response) => {
+      res.json({
+        status: 'ok',
+        service: 'sabarmati-biodiversity-api',
+        timestamp: new Date().toISOString(),
       });
     });
   }

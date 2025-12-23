@@ -1,0 +1,28 @@
+experiment_name: sabarmati_lstm
+run_dir: runs/
+model: LSTM
+head: regression
+train_basin_file: ML/basins/sabarmati/basins.txt
+data_dir: ML/basins/sabarmati
+dataset: generic
+dynamic_inputs:
+  - rainfall_mm
+target_variables:
+  - discharge
+seq_length: 1
+predict_last_n: 1
+epochs: 50
+batch_size: 64
+optimizer: Adam
+learning_rate: 0.001
+loss: MSE
+metrics:
+  - NSE
+  - KGE
+  - RMSE
+train_start_date: 2006-08-19
+train_end_date: 2006-08-19
+validation_start_date: 2006-08-20
+validation_end_date: 2006-08-20
+test_start_date: 2006-08-21
+test_end_date: 2006-08-21

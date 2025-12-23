@@ -114,6 +114,23 @@ export default function TabLayout() {
         }}
       />
 
+      {/* Biodiversity Tab (Nested Directory) */}
+      <Tabs.Screen
+        name="biodiversity"
+        options={{
+          title: 'Bio',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Ionicons
+                name={focused ? 'leaf' : 'leaf-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
       {/* Profile Tab (Nested Directory) */}
       <Tabs.Screen
         name="profile"

@@ -22,10 +22,19 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-console.log('🔥 Firebase Config Loaded:', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-});
+// Only log Firebase config if it's actually configured (not placeholder values)
+// Suppress logging when using placeholder values to reduce console noise
+const isConfigured = firebaseConfig.apiKey !== 'your-api-key' && 
+                     firebaseConfig.projectId !== 'your-project-id' &&
+                     firebaseConfig.apiKey !== undefined &&
+                     firebaseConfig.projectId !== undefined;
+
+if (isConfigured) {
+  console.log('🔥 Firebase Config Loaded:', {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+  });
+}
 
 // Initialize Firebase
 let app: FirebaseApp | undefined;
@@ -37,7 +46,11 @@ let analytics: Analytics | null = null;
 // Check if Firebase config is valid (not placeholder values)
 const isFirebaseConfigured = 
   firebaseConfig.apiKey !== 'your-api-key' &&
-  firebaseConfig.projectId !== 'your-project-id';
+  firebaseConfig.projectId !== 'your-project-id' &&
+  firebaseConfig.apiKey !== undefined &&
+  firebaseConfig.projectId !== undefined &&
+  firebaseConfig.apiKey.length > 0 &&
+  firebaseConfig.projectId.length > 0;
 
 if (isFirebaseConfigured) {
   try {
@@ -88,8 +101,14 @@ if (isFirebaseConfigured) {
     // Don't throw - let the app continue without Firebase
   }
 } else {
-  console.warn('Firebase not configured. App will run without Firebase features.');
-  console.warn('To enable Firebase, add your config to environment variables.');
+  // Suppress warnings when Firebase is not configured - this is expected in development
+  // Users can configure Firebase when ready by following ENV_SETUP_GUIDE.md
+  // Only log once on app start to avoid console spam
+  if (__DEV__ && !global._firebaseWarningShown) {
+    global._firebaseWarningShown = true;
+    console.log('ℹ️  Firebase not configured. Running in development mode.');
+    console.log('ℹ️  To enable Firebase, see ENV_SETUP_GUIDE.md');
+  }
 }
 
 export { analytics, app, auth, db, storage };
