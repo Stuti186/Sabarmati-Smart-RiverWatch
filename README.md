@@ -337,7 +337,7 @@ Sabarmati/
 ## 👥 Team
 
 **Smart River Watch Team**  
-Building technology for a cleaner, safer Sabarmati Riverfront.
+Building technology for a cleaner, Safer Sabarmati Riverfront.
 
 ---
 
